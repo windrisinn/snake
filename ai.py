@@ -1,12 +1,13 @@
+import math
+import time
 from queue import PriorityQueue
 from typing import Tuple
 from math import cos, sin
-import math
+
 iWantBigDonut = 0.75
 
 
 class SnakeAI:
-
     def __init__(self):
         self.narrowRangeStrategy = NarrowRangeStrategy()
         self.chooseDonutStrategy = ChooseDonutStrategy()
@@ -28,10 +29,11 @@ class SnakeAI:
         # 添加选豆范围缩小策略
         # ...
         # 添加选豆策略
-        self.chooseDonutStrategies.append(self.chooseDonutStrategy.SmallDistance())
+        # self.chooseDonutStrategies.append(self.chooseDonutStrategy.SmallDistance())
+        self.chooseDonutStrategies.append(self.chooseDonutStrategy.SmallDistanceV2())
         # 添加寻路策略
-        self.pathFindingStrategies.append(self.pathFindingStrategy.AStarMonitor())
-        # self.pathFindingStrategies.append(self.pathFindingStrategy.AvoidTouchWall())
+        # self.pathFindingStrategies.append(self.pathFindingStrategy.AStarMonitor())
+        self.pathFindingStrategies.append(self.pathFindingStrategy.AvoidTouchWall())
 
     def onEnded(self, score) -> None:
         pass
@@ -39,6 +41,8 @@ class SnakeAI:
     def onRound(self, roundIndex, gameInfo, worldInfo) -> Tuple[float, float]:
         # strategyResults = []
         context = {"roundIndex": roundIndex, "worldInfo": worldInfo, "gameInfo": gameInfo}
+
+        start = time.time()
 
         # 执行选豆范围缩小策略组
         self.procesBatch(self.narrowRangeStrategies, context)
@@ -48,6 +52,10 @@ class SnakeAI:
 
         # 执行寻路策略组
         self.procesBatch(self.pathFindingStrategies, context)
+
+        end = time.time()
+        print("决策时间", end - start)
+
         return context.get("vector")
 
     def procesBatch(self, strategies, context):
@@ -70,7 +78,7 @@ def distancev2(x1, y1, x2, y2):
     return math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2))
 
 
-def inTwoCircle(mySnake, position):  # 我的蛇头 目标豆子
+def inTwoCircle(mySnake, Position):  # 我的蛇 豆的坐标
     sd = 5 / 3.14
     direction = mySnake.Direction
     moLength = math.sqrt(direction.X * direction.X + direction.Y * direction.Y)
@@ -80,9 +88,10 @@ def inTwoCircle(mySnake, position):  # 我的蛇头 目标豆子
     y1 = mySnake.Nodes[0].Y - dx * sd
     x2 = mySnake.Nodes[0].X - dy * sd
     y2 = mySnake.Nodes[0].Y + dx * sd
-    if distancev2(position.X, position.Y, x1, y1) < sd or distancev2(position.X, position.Y, x2, y2):
-        return False
-    return True
+    # print("666")
+    if distancev2(Position.X, Position.Y, x1, y1) < sd or distancev2(Position.X, Position.Y, x2, y2) < sd:
+        return True
+    return False
 
 
 # 选豆策略组，返回豆坐标
@@ -115,7 +124,6 @@ class ChooseDonutStrategy:
             print(finalPosition)
             context["finalPosition"] = finalPosition
 
-    # 豆子距离短优先策略
     class SmallDistanceV2:
         # 策略开关
         def enable(self, context):
@@ -142,10 +150,10 @@ class ChooseDonutStrategy:
             print(finalPosition)
             context["finalPosition"] = finalPosition
 
-        def judgetValid(donut, mySnake):
-            headPosition = mySnake.Nodes[0]
-            if mySnake.Direction.X * (donut.X - headPosition.X) + \
-                    mySnake.Direction.Y * (donut.Y - headPosition.Y) < 0:
+        def judgetValid(self, donut, mySnake):
+            head = mySnake.Nodes[0]
+            if mySnake.Direction.X * (donut.Position.X - head.X) + \
+                    mySnake.Direction.Y * (donut.Position.Y - head.Y) < 0:
                 return False
             if inTwoCircle(mySnake, donut):
                 return False
@@ -163,7 +171,7 @@ class PathFindingStrategy:
     def __init__(self) -> None:
         pass
 
-    # 围墙防撞
+    # 墙防撞
     class AvoidTouchWall:
         # 策略开关
         def enable(self, context):
