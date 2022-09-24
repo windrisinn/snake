@@ -4,7 +4,6 @@ from math import cos, sin
 
 class SnakeAI:
     def __init__(self):
-        self.narrowRangeStrategy = NarrowRangeStrategy()
         self.chooseDonutStrategy = ChooseDonutStrategy()
         self.pathFindingStrategy = PathFindingStrategy()
 
@@ -22,7 +21,7 @@ class SnakeAI:
         # print(worldInfo)
 
         # 添加选豆范围缩小策略
-        # ...
+        self.narrowRangeStrategies.append(NarrowRangeStrategy(10, worldInfo))
         # 添加选豆策略
         self.chooseDonutStrategies.append(self.chooseDonutStrategy.SmallDistance())
         # 添加寻路策略
@@ -110,12 +109,16 @@ class SmallRange:
 
 # 选豆范围缩小策略组，返回范围缩小的地图
 class NarrowRangeStrategy:
-    def __init__(self, width, context) -> None:
+    def __init__(self, width, worldInfo) -> None:
         # 初始胡时传入小区块的宽度
         self.width = width
-        self.worldInfo = context.get("worldInfo")
+        self.worldInfo = worldInfo
         self.smallRanges = []
-        return
+
+        # 初始化时计算
+        self.splitRange()
+        self.sendDonutsToRange()
+        self.sendSnakesToRange()
 
     # 划分区域
     def splitRange(self):
@@ -175,10 +178,10 @@ class NarrowRangeStrategy:
                 self.smallRanges[i].snakeLength - w3 * self.smallRanges[i].distance
         self.smallRanges.sort(key=getRank, reverse=True)
 
+    def enable(self, context):
+        return True
+
     def process(self, w1, w2, w3):
-        self.splitRange()
-        self.sendDonutsToRange()
-        self.sendSnakesToRange()
         self.sortSmallRange(w1, w2, w3)
         return self.smallRanges[0]
 
