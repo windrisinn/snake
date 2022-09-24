@@ -1,4 +1,12 @@
+from cgitb import small
+from dis import dis
+from distutils.command.build import build
+from genericpath import samefile
 from queue import PriorityQueue
+from re import S
+from shutil import SameFileError, which
+from time import sleep
+from turtle import right, width
 from typing import Tuple
 from math import cos, sin
 
@@ -94,9 +102,74 @@ class ChooseDonutStrategy:
             context["finalPosition"] = finalPosition
 
 
+class SmallRange:
+    def __init__(self, width) -> None:
+        self.width = width
+        self.leftTop = (0, 0)
+        self.rightBottom = (0, 0)
+
+        self.score = 0
+        self.donuts = []
+        self.distance = 0
+        self.snakeNum = 0
+        self.snakeLength = 0
+        self.snakeIds = []
+
+
 # 选豆范围缩小策略组，返回范围缩小的地图
 class NarrowRangeStrategy:
-    def __init__(self) -> None:
+    def __init__(self, width, context) -> None:
+        # 初始胡时传入小区块的宽度
+        self.width = width
+        self.worldInfo = context.get("worldInfo")
+        self.smallRanges = []
+        return
+
+    # 划分区域
+    def splitRange(self):
+        for x in range(-50, 50, self.width):
+            for y in range(25, -25, -self.width):
+                smallRange = SmallRange(self.width)
+                smallRange.leftTop = (x, y)
+                smallRange.rightBottom = (x + self.width, y - self.width)
+                self.smallRanges.append(smallRange)
+                # 计算距离
+
+    def calculateDistance(self, smallRange):
+        myHead = self.worldInfo.mySnake.Nodes[0]
+        x, y = myHead.X, myHead.Y
+        boundX = smallRange.leftTop[0]
+        boundY = smallRange.rightBottom[1]
+
+        # 判断是否在区域内部
+        if boundX <= x <= boundX + self.width and boundY <= y <= boundY + self.width:
+            return 0.0
+        # 外部区域
+        centerX = (smallRange.leftTop[0] + smallRange.rightBottom[0]) / 2
+        centerY = (smallRange.leftTop[1] + smallRange.rightBottom[1]) / 2
+        return (centerX - x) * (centerX - x) + (centerY - y) * (centerY - y)
+
+    # 分配豆子到指定区域
+    def sendDonutsToRange(self):
+        for donut in self.worldInfo.donuts:
+            score = 10 if donut.Type == 1 else 1
+            self.smallRanges[self.getRangeIndex(donut.Position.X, donut.Position.Y)].score += score
+            self.smallRanges[self.getRangeIndex(donut.Position.X, donut.Position.Y)].donuts.append(donut)
+
+    # 分配其他 snake 到指定区域
+    def sendSnakesToRange(self):
+        for snake in self.worldInfo.otherSnakes:
+            if not snake.isAlive:
+                continue
+            self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].snakeNum += 1
+            self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].snakeLength += len(snake.Nodes)
+            self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].ids.append(snake.Id)
+
+    # 根据坐标计算对应小区域的索引
+    def getRangeIndex(self, x, y):
+        return 1
+
+    def getTheBestSmallRange(self):
         pass
 
 
@@ -125,7 +198,8 @@ class PathFindingStrategy:
             safeDis = gameInfo.SnakeProperty.Velocity / gameInfo.SnakeProperty.AngularVelocity * 180
 
             # 存放运动向量结果
-            if finalPosition.X > safeDis and finalPosition.X < m.X - safeDis and finalPosition.Y > safeDis and finalPosition.Y < m.Y - safeDis:
+            if finalPosition.X > safeDis and finalPosition.X < m.X - \
+                    safeDis and finalPosition.Y > safeDis and finalPosition.Y < m.Y - safeDis:
                 print("1234")
                 context["vector"] = mySnake.Nodes[0].X - finalPosition.X, mySnake.Nodes[0].Y - finalPosition.Y
             else:
@@ -153,7 +227,7 @@ class PathFindingStrategy:
 
             def getG(self) -> float:
                 # 父节点的 g 距离
-                tg = self.father.getG if self.father != None else 0
+                tg = self.father.getG if self.father is not None else 0
                 return tg + self.g
 
             def getH(self) -> float:
@@ -167,7 +241,7 @@ class PathFindingStrategy:
         def getDir(start, end):
             return (end[0] - start[0], end[1] - end[0])
 
-        def contains(queue, node) -> bool:
+        def contains(self, queue, node) -> bool:
             for i in range(queue.count):
                 if (queue[i] == node):
                     return True
@@ -208,11 +282,11 @@ class PathFindingStrategy:
 
             q = openList.queue
 
-            if not self.contains(lineNode) and not self.checkWall(lineNode, gameInfo, safeDist):
+            if not self.contains(q, lineNode) and not self.checkWall(lineNode, gameInfo, safeDist):
                 openList.put((lineNode.getF(), lineNode))
-            if not self.contains(leftNode) and not self.checkWall(leftNode, gameInfo, safeDist):
+            if not self.contains(q, leftNode) and not self.checkWall(leftNode, gameInfo, safeDist):
                 openList.put((leftNode.getF(), leftNode))
-            if not self.contains(rightNode) and not self.checkWall(rightNode, gameInfo, safeDist):
+            if not self.contains(q, rightNode) and not self.checkWall(rightNode, gameInfo, safeDist):
                 openList.put((rightNode.getF(), rightNode))
 
         # 获取A*决策接下来要走的方向向量
@@ -223,7 +297,7 @@ class PathFindingStrategy:
             closeList = []
 
             head = (worldInfo.mySnake.Nodes[0].X, worldInfo.mySnake.Nodes[0].Y)
-            curDir = (worldInfo.mySnake.Direction.x, worldInfo.mySnake.Direction.y)
+            curDir = (worldInfo.mySnake.Direction.X, worldInfo.mySnake.Direction.Y)
             node = self.AStarNode(head[0], head[1], curDir[0], curDir[1], endPos[0], endPos[1])
             openList.put((node.getF(), node))
 
@@ -234,7 +308,7 @@ class PathFindingStrategy:
                 if curNode.pos[0] - curNode.end[0] < 1 and curNode.pos[1] - curNode.end[1] < 1:
                     # 找到最终节点了，开始复现路径返回
                     path = []
-                    while curNode.father != None:
+                    while curNode.father is not None:
                         path.append(curNode)
                         curNode = curNode.father
                     return path.pop().dir
