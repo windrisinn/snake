@@ -154,8 +154,9 @@ class NarrowRangeStrategy:
             if not snake.isAlive:
                 continue
             self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].snakeNum += 1
-            self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].snakeLength += len(snake.Nodes)
             self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].otherSnakes.append(snake)
+            for node in snake.Nodes:
+                self.smallRanges[self.getRangeIndex(node.X, node.Y)].snakeLength += 1
 
     # 根据坐标计算对应小区域的索引
     def getRangeIndex(self, x, y):
@@ -170,7 +171,8 @@ class NarrowRangeStrategy:
             return smallRange.rank
         # 排序
         for i in range(self.smallRanges):
-            self.smallRanges[i].rank = w1 * self.smallRanges[i].score - w2 * self.smallRanges[i].snakeLength - w3 * self.smallRanges[i].distance
+            self.smallRanges[i].rank = w1 * self.smallRanges[i].score - w2 * \
+                self.smallRanges[i].snakeLength - w3 * self.smallRanges[i].distance
         self.smallRanges.sort(key=getRank, reverse=True)
 
     def process(self, w1, w2, w3):
