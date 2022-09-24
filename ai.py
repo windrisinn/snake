@@ -137,7 +137,7 @@ class NarrowRangeStrategy:
         boundY = smallRange.rightBottom[1]
 
         # 判断是否在区域内部
-        if boundX <= x <= boundX + self.width and boundY <= y <= boundY + self.width:
+        if (x >= boundX and x <= boundX + self.width) and (y >= boundY and y <= boundY + self.width):
             return 0.0
         # 外部区域
         centerX = (smallRange.leftTop[0] + smallRange.rightBottom[0]) / 2
