@@ -132,8 +132,8 @@ class NarrowRangeStrategy:
                 smallRange = SmallRange(self.width)
                 smallRange.leftTop = (x, y)
                 smallRange.rightBottom = (x + self.width, y - self.width)
+                smallRange.distance = self.calculateDistance(smallRange)
                 self.smallRanges.append(smallRange)
-                # 计算距离
 
     def calculateDistance(self, smallRange):
         myHead = self.worldInfo.mySnake.Nodes[0]
@@ -167,9 +167,12 @@ class NarrowRangeStrategy:
 
     # 根据坐标计算对应小区域的索引
     def getRangeIndex(self, x, y):
+        
         return 1
 
+    # 选择区域策略
     def getTheBestSmallRange(self):
+        
         pass
 
 
