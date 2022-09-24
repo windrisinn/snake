@@ -2,9 +2,11 @@ from queue import PriorityQueue
 from typing import Tuple
 from math import cos, sin
 import math
+iWantBigDonut = 0.75
 
 
 class SnakeAI:
+
     def __init__(self):
         self.narrowRangeStrategy = NarrowRangeStrategy()
         self.chooseDonutStrategy = ChooseDonutStrategy()
@@ -128,6 +130,8 @@ class ChooseDonutStrategy:
             finalPosition = 0, 0
             for donut in worldInfo.donuts:
                 tempDistance = distance(donut.Position, mySnake.Nodes[0])
+                if donut.DonutType == 1:
+                    tempDistance = tempDistance * iWantBigDonut
                 # print(f"tempDistance: {tempDistance}, minDistance: {minDistance}")
                 if self.judgetValid(donut, mySnake) and tempDistance < minDistance:
                     minDistance = tempDistance
