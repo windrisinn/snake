@@ -109,8 +109,6 @@ class SmallRange:
 
 
 # 选豆范围缩小策略组，返回范围缩小的地图
-
-
 class SplitedRange:
     def __init__(self, left_bottom, right_top) -> None:
         self.left_bottom = left_bottom
@@ -124,10 +122,6 @@ class NarrowRangeStrategy:
         # 初始胡时传入小区块的宽度
         self.width = width
         self.worldInfo = worldInfo
-
-        self.smallRanges = []
-        self.neiborHasSnakes = [False, False, False, False]
-        self.neiborSquares = []
 
     # 划分区域
     def splitRange(self):
@@ -230,6 +224,8 @@ class NarrowRangeStrategy:
 
     def process(self, w1, w2, w3):
         self.smallRanges = []
+        self.neiborHasSnakes = [False, False, False, False]
+        self.neiborSquares = []
 
         self.splitRange()
         self.sendDonutsToRange()
