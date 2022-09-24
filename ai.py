@@ -76,10 +76,10 @@ def inTwoCircle(mySnake, position):  # 我的蛇头 目标豆子
     moLength = math.sqrt(direction.X * direction.X + direction.Y * direction.Y)
     dx = direction.X / moLength
     dy = direction.Y / moLength
-    x1 = mySnake.Direction.X + dy * sd
-    y1 = mySnake.Direction.Y - dx * sd
-    x2 = mySnake.Direction.X - dy * sd
-    y2 = mySnake.Direction.Y + dx * sd
+    x1 = mySnake.Nodes[0].X + dy * sd
+    y1 = mySnake.Nodes[0].Y - dx * sd
+    x2 = mySnake.Nodes[0].X - dy * sd
+    y2 = mySnake.Nodes[0].Y + dx * sd
     if distancev2(position.X, position.Y, x1, y1) < sd or distancev2(position.X, position.Y, x2, y2):
         return False
     return True
@@ -147,7 +147,7 @@ class ChooseDonutStrategy:
             if mySnake.Direction.X * (donut.X - headPosition.X) + \
                     mySnake.Direction.Y * (donut.Y - headPosition.Y) < 0:
                 return False
-            if inTwoCircle(mySnake.Nodes[0], donut):
+            if inTwoCircle(mySnake, donut):
                 return False
             return True
 
