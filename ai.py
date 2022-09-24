@@ -66,7 +66,7 @@ def distance(a, b):
     return (a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y)
 
 
-def distance(x1, y1, x2, y2):
+def distancev2(x1, y1, x2, y2):
     return math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2))
 
 
@@ -80,7 +80,7 @@ def inTwoCircle(mySnake, position):  # 我的蛇头 目标豆子
     y1 = mySnake.Direction.Y - dx * sd
     x2 = mySnake.Direction.X - dy * sd
     y2 = mySnake.Direction.Y + dx * sd
-    if distance(position.X, position.Y, x1, y1) < sd or distance(position.X, position.Y, x2, y2):
+    if distancev2(position.X, position.Y, x1, y1) < sd or distancev2(position.X, position.Y, x2, y2):
         return False
     return True
 
