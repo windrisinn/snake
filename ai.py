@@ -1,13 +1,4 @@
-from cgitb import small
-from dis import dis
-from distutils.command.build import build
-from genericpath import samefile
 from queue import PriorityQueue
-from re import S
-from shutil import SameFileError, which
-from time import sleep
-from turtle import right, width
-from typing import Tuple
 from math import cos, sin
 
 
@@ -41,7 +32,7 @@ class SnakeAI:
     def onEnded(self, score) -> None:
         pass
 
-    def onRound(self, roundIndex, gameInfo, worldInfo) -> Tuple[float, float]:
+    def onRound(self, roundIndex, gameInfo, worldInfo):
         # strategyResults = []
         context = {"roundIndex": roundIndex, "worldInfo": worldInfo, "gameInfo": gameInfo}
 
@@ -113,7 +104,8 @@ class SmallRange:
         self.distance = 0
         self.snakeNum = 0
         self.snakeLength = 0
-        self.snakeIds = []
+        self.otherSnakes = []
+        self.rank = -100
 
 
 # 选豆范围缩小策略组，返回范围缩小的地图
@@ -163,17 +155,30 @@ class NarrowRangeStrategy:
                 continue
             self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].snakeNum += 1
             self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].snakeLength += len(snake.Nodes)
-            self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].ids.append(snake.Id)
+            self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].otherSnakes.append(snake)
 
     # 根据坐标计算对应小区域的索引
     def getRangeIndex(self, x, y):
-        
-        return 1
+        offsetX = int(abs(x + 50) / self.width)
+        offsetY = int(abs(y - 25) / self.width)
+
+        return offsetX * (50 / self.width) + offsetY
 
     # 选择区域策略
-    def getTheBestSmallRange(self):
-        
-        pass
+    def sortSmallRange(self, w1, w2, w3):
+        def getRank(smallRange):
+            return smallRange.rank
+        # 排序
+        for i in range(self.smallRanges):
+            self.smallRanges[i].rank = w1 * self.smallRanges[i].score - w2 * self.smallRanges[i].snakeLength - w3 * self.smallRanges[i].distance
+        self.smallRanges.sort(key=getRank, reverse=True)
+
+    def process(self, w1, w2, w3):
+        self.splitRange()
+        self.sendDonutsToRange()
+        self.sendSnakesToRange()
+        self.sortSmallRange(w1, w2, w3)
+        return self.smallRanges[0]
 
 
 # 寻路策略组，返回最终运动向量
@@ -293,7 +298,7 @@ class PathFindingStrategy:
                 openList.put((rightNode.getF(), rightNode))
 
         # 获取A*决策接下来要走的方向向量
-        def getDirection(self, endPos, gameInfo, worldInfo, safeDist) -> Tuple[float, float]:
+        def getDirection(self, endPos, gameInfo, worldInfo, safeDist):
             # 开启列表
             openList = PriorityQueue()
             # 关闭列表
