@@ -1,4 +1,8 @@
+from cgitb import reset
+from enum import Flag
 import math
+from re import S
+import re
 import numpy as np
 
 from queue import PriorityQueue
@@ -118,7 +122,7 @@ class SplitedRange:
         self.left_bottom = left_bottom
         self.right_top = right_top
         self.num_enemy = 0
-        self.area =0
+        self.area = 0
 
 
 class NarrowRangeStrategy:
@@ -126,12 +130,10 @@ class NarrowRangeStrategy:
         # 初始胡时传入小区块的宽度
         self.width = width
         self.worldInfo = worldInfo
-        self.smallRanges = []
 
-        # 初始化时计算
-        self.splitRange()
-        self.sendDonutsToRange()
-        self.sendSnakesToRange()
+        self.smallRanges = []
+        self.neiborHasSnakes = [False, False, False, False]
+        self.neiborSquares = []
 
     # 划分区域
     def splitRange(self):
@@ -142,6 +144,34 @@ class NarrowRangeStrategy:
                 smallRange.rightBottom = (x + self.width, y - self.width)
                 smallRange.distance = self.calculateDistance(smallRange)
                 self.smallRanges.append(smallRange)
+        self.neiborSquares = self.get_square()
+
+    def get_square(self):
+        cur_dir = self.worldInfo.mySnake.Direction
+        cur_pos = self.worldInfo.mySnake.Nodes[0]
+        vertical_vec = (-cur_dir.Y, cur_dir.X)
+        var1 = vertical_vec / math.sqrt(vertical_vec.X * vertical_vec.X + vertical_vec.Y * vertical_vec.Y)
+        var2 = cur_dir / math.sqrt(cur_dir.X * cur_dir.X + cur_dir.Y * cur_dir.Y)
+
+        # 左右两点
+        point_1 = Point(var1 * 7 + cur_pos)
+        point_2 = Point(-var1 * 7 + cur_pos)
+
+        # 四个边角
+        point_3 = Point(var2 * 7 + point_1)
+        point_4 = Point(var2 * 7 + point_2)
+        point_5 = Point(-var2 * 3 + point_1)
+        point_6 = Point(-var2 * 3 + point_2)
+
+        # 上下两点
+        point_7 = Point(var2 * 7 + cur_pos)
+        point_8 = Point(-var2 * 3 + cur_pos)
+
+        # 原点
+        point_9 = Point(cur_pos)
+
+        return [Square(point_3, point_2, point_9, point_7), Square(point_7, point_9, point_1, point_4),
+                Square(point_2, point_5, point_8, point_9), Square(point_9, point_8, point_6, point_1)]
 
     def calculateDistance(self, smallRange):
         myHead = self.worldInfo.mySnake.Nodes[0]
@@ -171,8 +201,18 @@ class NarrowRangeStrategy:
                 continue
             self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].snakeNum += 1
             self.smallRanges[self.getRangeIndex(snake.Nodes[0].X, snake.Nodes[0].Y)].otherSnakes.append(snake)
+
             for node in snake.Nodes:
                 self.smallRanges[self.getRangeIndex(node.X, node.Y)].snakeLength += 1
+
+                if self.neiborSquares[0] and self.neiborSquares[1] and self.neiborSquares[2] and self.neiborSquares[3]:
+                    continue
+                for i in range(len(self.neiborSquares)):
+                    if self.neiborSquares[i]:
+                        continue
+                    if self.neiborSquares[i].is_inside(node):
+                        self.neiborHasSnakes[i] = True
+                        break
 
     # 根据坐标计算对应小区域的索引
     def getRangeIndex(self, x, y):
@@ -195,84 +235,23 @@ class NarrowRangeStrategy:
         return True
 
     def process(self, w1, w2, w3):
+        self.smallRanges = []
+
+        self.splitRange()
+        self.sendDonutsToRange()
+        self.sendSnakesToRange()
         self.sortSmallRange(w1, w2, w3)
         return self.smallRanges[0]
 
-    class WindStrategy:
-        def __init__(self, context) -> None:
-            self.worldInfo = context.get("worldInfo")
-            self.init_map_block = []
-        def enable(self, context):
-            return True;
-        def init_map(self):
-            init_map_block = []
-            left_bottom = self.context.gameInfo.MapProperty.Origin
-            right_top = (left_bottom.X+25, left_bottom.Y+25)
-            for _ in range(2):
-                for _ in range(4):
-                    spilt_range = SplitedRange(left_bottom, right_top)
-                    init_map_block.append(spilt_range)
-
-                left_bottom.Y += 25
-            self.init_map_block = init_map_block
-        def process(self, context):
-            worldInfo = context.get("worldInfo")
-            mySnake = worldInfo.mySnake
-        def split_map(self):
-            pass
-        def count_enemies(self):
-            otherSnakes = self.context.otherSnakes
-            for snake in otherSnakes:
-                self.init_map_block[self.get_block_index(snake)].num_enemy += 1
-
-        def set_snake_occupy_area(self, snake):
-            for node in snake.Nodes:
-                self.init_map_block[self.get_block_index(node)].area += math.pi
-
-
-        def get_block_index(self, item_vector, width):
-            pre_index = 50 / width
-            x_index = pre_index + int(abs(item_vector.X / width)) if item_vector.X >= 0 else pre_index - math.ceil(abs(item_vector.X / width))
-
-            y_index = pre_index + int(abs(item_vector.Y / width)) if item_vector.Y >= 0 else pre_index - math.ceil(abs(item_vector.Y / width))
-
-            return y_index * pre_index + x_index
-
-        def get_front_square(self):
-            my_snake = self.context.get("worldInfo").mySnake
-            cur_direction = my_snake.Direction
-
-        def get_square(self, cur_dir, cur_pos):
-            vertical_vec = (-cur_dir.Y, cur_dir.X)
-            var1 = vertical_vec / math.sqrt(vertical_vec.X * vertical_vec.X + vertical_vec.Y * vertical_vec.Y)
-            var2 = cur_dir / math.sqrt(cur_dir.X * cur_dir.X + cur_dir.Y * cur_dir.Y)
-
-            # 左右两点
-            point_1 = Point(var1 * 7 + cur_pos)
-            point_2 = Point(-var1 * 7 + cur_pos)
-
-            # 四个边角
-            point_3 = Point(var2 * 7 + point_1)
-            point_4 = Point(var2 * 7 + point_2)
-            point_5 = Point(-var2 * 3 + point_1)
-            point_6 = Point(-var2 * 3 + point_2)
-
-            # 上下两点
-            point_7 = Point(var2 * 7 + cur_pos)
-            point_8 = Point(-var2 * 3 + cur_pos)
-
-            # 原点
-            point_9 = Point(cur_pos)
-
-            return [Square(point_3, point_2, point_9, point_7), Square(point_7, point_9, point_1, point_4),
-                    Square(point_2, point_5, point_8, point_9), Square(point_9, point_8, point_6, point_1)]
 
 class Point:
     def __init__(self, vec):
         self.x = vec[0]
         self.y = vec[1]
+
+
 class Square:
-    def __init__(self, point_1, point_2, point_3, point_4 ):
+    def __init__(self, point_1, point_2, point_3, point_4):
         self.point_1 = point_1
         self.point_2 = point_2
         self.point_3 = point_3
@@ -280,12 +259,10 @@ class Square:
 
     def get_cross(self, p1, p2, p):
         (p2.x - p1.x) * (p.y - p1.y) - (p.x - p1.x) * (p2.y - p1.y)
+
     def is_inside(self, p):
         return self.get_cross(self.point_1, self.point_2, p) * self.get_cross(self.point_3, self.point_4, p) >= 0 and \
-               self.get_cross(self.point_2, self.point_3, p) * self.get_cross(self.point_4, self.point_1, p) >= 0
-
-
-
+            self.get_cross(self.point_2, self.point_3, p) * self.get_cross(self.point_4, self.point_1, p) >= 0
 
 
 # 寻路策略组，返回最终运动向量
@@ -445,6 +422,5 @@ class PathFindingStrategy:
 
 if __name__ == "__main__":
     ai = SnakeAI()
-    NarrowRangeStrategy.WindStrategy(None).init_map();
-  #  ai.chooseDonutStrategies.append(ChooseDonutStrategy.SmallDistance())
-  #  ai.onRound(1, 2, 3)
+    ai.chooseDonutStrategies.append(ChooseDonutStrategy.SmallDistance())
+    ai.onRound(1, 2, 3)
