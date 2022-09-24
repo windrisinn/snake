@@ -1,6 +1,7 @@
 from queue import PriorityQueue
 from typing import Tuple
 from math import cos, sin
+import math
 
 
 class SnakeAI:
@@ -63,6 +64,25 @@ def distance(a, b):
     return (a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y)
 
 
+def distance(x1, y1, x2, y2):
+    return math.sqrt((x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2))
+
+
+def inTwoCircle(mySnake, position):  # 我的蛇头 目标豆子
+    sd = 5 / 3.14
+    direction = mySnake.Direction
+    moLength = math.sqrt(direction.X * direction.X + direction.Y * direction.Y)
+    dx = direction.X / moLength
+    dy = direction.Y / moLength
+    x1 = mySnake.Direction.X + dy * sd
+    y1 = mySnake.Direction.Y - dx * sd
+    x2 = mySnake.Direction.X - dy * sd
+    y2 = mySnake.Direction.Y + dx * sd
+    if distance(position.X, position.Y, x1, y1) < sd or distance(position.X, position.Y, x2, y2):
+        return False
+    return True
+
+
 # 选豆策略组，返回豆坐标
 class ChooseDonutStrategy:
     def __init__(self) -> None:
@@ -92,6 +112,40 @@ class ChooseDonutStrategy:
             # 存放豆坐标结果
             print(finalPosition)
             context["finalPosition"] = finalPosition
+
+    # 豆子距离短优先策略
+    class SmallDistanceV2:
+        # 策略开关
+        def enable(self, context):
+            return True
+
+        # 策略处理
+        def process(self, context):
+            worldInfo = context.get("worldInfo")
+            mySnake = worldInfo.mySnake
+
+            minDistance = 10000
+            finalPosition = 0, 0
+            for donut in worldInfo.donuts:
+                tempDistance = distance(donut.Position, mySnake.Nodes[0])
+                # print(f"tempDistance: {tempDistance}, minDistance: {minDistance}")
+                if self.judgetValid(donut, mySnake) and tempDistance < minDistance:
+                    minDistance = tempDistance
+                    finalPosition = donut.Position
+                    # print(f"finalPosition: {finalPosition}, mySnakePosition: {mySnake.Nodes[0]}")
+
+            # 存放豆坐标结果
+            print(finalPosition)
+            context["finalPosition"] = finalPosition
+
+        def judgetValid(donut, mySnake):
+            headPosition = mySnake.Nodes[0]
+            if mySnake.Direction.X * (donut.X - headPosition.X) + \
+                    mySnake.Direction.Y * (donut.Y - headPosition.Y) < 0:
+                return False
+            if inTwoCircle(mySnake.Nodes[0], donut):
+                return False
+            return True
 
 
 # 选豆范围缩小策略组，返回范围缩小的地图
